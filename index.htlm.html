@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Tài liệu Cá nhân</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ================= 1. LOGIN SCREEN ================= -->
+    <div id="login-view" class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-8 border border-slate-100 dark:border-slate-700 transform transition-all">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 mb-4 shadow-inner">
+                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight">Bảo mật Tài liệu</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Đăng nhập quyền Quản trị viên (Admin)</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Mật khẩu Admin</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <input type="password" id="admin-password" required placeholder="Nhập mật khẩu quản trị..."
+                            class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i id="eye-icon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="login-error" class="hidden text-xs text-rose-500 bg-rose-50 dark:bg-rose-900/30 p-3 rounded-lg border border-rose-200 dark:border-rose-800 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Mật khẩu không chính xác. Vui lòng thử lại!</span>
+                </div>
+
+                <button type="submit" class="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2">
+                    <span>Truy cập hệ thống</span>
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= 2. MAIN APPLICATION ================= -->
+    <div id="app-view" class="hidden h-full flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- SIDEBAR - Cây thư mục -->
+        <aside class="w-full md:w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col h-full z-10 shrink-0">
+            <!-- App Header -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/20">
+                        <i class="fa-solid fa-folder-tree"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-sm leading-tight">Kho Tài Liệu</h2>
+                        <span class="text-[11px] text-emerald-500 font-medium flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Đã xác thực Admin
+                        </span>
+                    </div>
+                </div>
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Đổi giao diện">
+                    <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
+                </button>
+            </div>
+
+            <!-- New Folder & Upload Quick Action -->
+            <div class="p-3 border-b border-slate-200 dark:border-slate-700 flex gap-2">
+                <button onclick="openCreateFolderModal()" class="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-slate-600 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-folder-plus"></i> Tạo thư mục
+                </button>
+                <button onclick="openUploadModal()" class="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Tải lên
+                </button>
+            </div>
+
+            <!-- Folder Tree View -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-1">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1 mb-1">Cấu trúc thư mục</div>
+                <div id="folder-tree" class="space-y-0.5">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-database text-indigo-500"></i>
+                    <span id="storage-status">0 mục</span>
+                </div>
+                <button onclick="handleLogout()" class="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1 px-2 py-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                    <i class="fa-solid fa-right-from-bracket"></i> Thoát
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-900">
+            
+            <!-- Top Navigation / Breadcrumb Bar -->
+            <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 z-10">
+                <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0" id="breadcrumb-container">
+                    <!-- Breadcrumb rendered by JS -->
+                </div>
+
+                <!-- Search & View Mode -->
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div class="relative flex-1 sm:w-64">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Tìm kiếm tài liệu..."
+                            class="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+                    </div>
+
+                    <div class="flex items-center bg-slate-100 dark:bg-slate-700 p-1 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <button onclick="switchViewMode('grid')" id="btn-grid-view" class="p-1.5 rounded text-xs text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 shadow-sm transition-all" title="Dạng lưới">
+                            <i class="fa-solid fa-grip"></i>
+                        </button>
+                        <button onclick="switchViewMode('list')" id="btn-list-view" class="p-1.5 rounded text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all" title="Dạng danh sách">
+                            <i class="fa-solid fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content Scrollable -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                
+                <!-- Folder Section inside current directory -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Thư mục con</h3>
+                        <button onclick="openCreateFolderModal()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">+ Thêm thư mục</button>
+                    </div>
+                    <div id="current-folders-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        <!-- Folders rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Files Section inside current directory -->
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Tài liệu</h3>
+                        <button onclick="openUploadModal()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">+ Tải lên tệp</button>
+                    </div>
+                    <div id="current-files-container">
+                        <!-- Files rendered by JS (Grid or List) -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= 3. MODALS ================= -->
+
+    <!-- Modal: Create / Edit Folder -->
+    <div id="folder-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-100 dark:border-slate-700">
+            <h3 id="folder-modal-title" class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-folder-plus text-indigo-600"></i> Tạo thư mục mới
+            </h3>
+            <form onsubmit="handleSaveFolder(event)">
+                <input type="hidden" id="edit-folder-id" value="">
+                <div class="mb-4">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Tên thư mục</label>
+                    <input type="text" id="new-folder-name" required placeholder="Ví dụ: Tài chính, Hợp đồng..."
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeModal('folder-modal')" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Hủy</button>
+                    <button type="submit" id="folder-submit-btn" class="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 transition-all">Lưu thư mục</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Upload File -->
+    <div id="upload-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-100 dark:border-slate-700">
+            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i> Tải lên tài liệu
+            </h3>
+            <form onsubmit="handleUploadFile(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Chọn tệp từ thiết bị</label>
+                    <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-indigo-500 rounded-xl p-6 text-center cursor-pointer transition-colors relative bg-slate-50 dark:bg-slate-900/50" onclick="document.getElementById('file-input').click()">
+                        <i class="fa-solid fa-file-arrow-up text-3xl text-indigo-500 mb-2"></i>
+                        <p class="text-xs font-medium text-slate-600 dark:text-slate-300" id="file-chosen-label">Nhấn để chọn tệp hoặc kéo thả vào đây</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Hỗ trợ PDF, Ảnh, Word, Excel, TXT...</p>
+                        <input type="file" id="file-input" onchange="updateFileLabel(this)" class="hidden">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Hoặc dùng dữ liệu mẫu (Demo)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="loadSampleFile('pdf')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-pdf text-rose-500"></i> Mẫu PDF
+                        </button>
+                        <button type="button" onclick="loadSampleFile('img')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-image text-emerald-500"></i> Mẫu Ảnh
+                        </button>
+                        <button type="button" onclick="loadSampleFile('txt')" class="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-file-lines text-amber-500"></i> Mẫu Text
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('upload-modal')" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Hủy</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/30 transition-all">Tải lên ngay</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Preview File -->
+    <div id="preview-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm hidden p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col border border-slate-100 dark:border-slate-700 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800">
+                <div class="flex items-center gap-3">
+                    <div id="preview-file-icon" class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <i class="fa-solid fa-file"></i>
+                    </div>
+                    <div>
+                        <h4 id="preview-file-title" class="font-bold text-sm truncate max-w-md">Tên tệp tin</h4>
+                        <span id="preview-file-meta" class="text-xs text-slate-400">Kích thước • Ngày tải lên</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="preview-download-btn" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 shadow transition-all">
+                        <i class="fa-solid fa-download"></i> Tải về
+                    </button>
+                    <button onclick="closeModal('preview-modal')" class="w-8 h-8 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="preview-content-area" class="flex-1 overflow-auto p-6 bg-slate-100 dark:bg-slate-900/50 flex items-center justify-center">
+                <!-- Preview content rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 4. JAVASCRIPT LOGIC ================= -->
+    <script>
+        const DEFAULT_STORAGE_KEY = 'personal_doc_manager_data_v2';
+        
+        let db = {
+            folders: [
+                { id: 'f1', name: 'Tài chính cá nhân', parentId: null },
+                { id: 'f2', name: 'Hồ sơ pháp lý', parentId: null },
+                { id: 'f3', name: 'Thuế & Bảo hiểm', parentId: 'f1' },
+                { id: 'f4', name: 'Chứng minh nhân dân', parentId: 'f2' }
+            ],
+            files: [
+                { 
+                    id: 'doc1', 
+                    name: 'BaoCaoTaiChinh_2026.pdf', 
+                    folderId: 'f1', 
+                    size: '2.4 MB', 
+                    type: 'pdf', 
+                    date: '05/03/2026',
+                    content: 'application/pdf'
+                },
+                { 
+                    id: 'doc2', 
+                    name: 'HopDongLaoDong.txt', 
+                    folderId: 'f2', 
+                    size: '45 KB', 
+                    type: 'txt', 
+                    date: '01/02/2026',
+                    content: 'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM\nĐộc lập - Tự do - Hạnh phúc\n\nHỢP ĐỒNG LAO ĐỘNG\n\nHôm nay, tại văn phòng công ty, chúng tôi gồm các bên thỏa thuận ký kết hợp đồng làm việc chính thức...'
+                },
+                { 
+                    id: 'doc3', 
+                    name: 'AnhCanCuoc.png', 
+                    folderId: 'f4', 
+                    size: '1.2 MB', 
+                    type: 'img', 
+                    date: '15/01/2026',
+                    content: 'https://placehold.co/800x500/4f46e5/ffffff?text=Căn+Cước+Công+Dân+(Demo)'
+                }
+            ]
+        };
+
+        let currentFolderId = null; // null means Root
+        let viewMode = 'grid'; // 'grid' or 'list'
+        let searchQuery = '';
+        let selectedFileForUpload = null;
+
+        // Initialize App
+        window.onload = function() {
+            loadFromLocalStorage();
+            checkSession();
+        };
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem(DEFAULT_STORAGE_KEY);
+            if (saved) {
+                try {
+                    db = JSON.parse(saved);
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem(DEFAULT_STORAGE_KEY, JSON.stringify(db));
+        }
+
+        // --- AUTHENTICATION ---
+        function checkSession() {
+            const isAuth = sessionStorage.getItem('admin_authenticated');
+            if (isAuth === 'true') {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('app-view').classList.remove('hidden');
+                renderApp();
+            } else {
+                document.getElementById('login-view').classList.remove('hidden');
+                document.getElementById('app-view').classList.add('hidden');
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const pass = document.getElementById('admin-password').value;
+            // Admin password set to 'admin1999'
+            if (pass === 'admin1999') {
+                sessionStorage.setItem('admin_authenticated', 'true');
+                document.getElementById('login-error').classList.add('hidden');
+                showToast('Đăng nhập quản trị viên thành công!', 'success');
+                checkSession();
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem('admin_authenticated');
+            document.getElementById('admin-password').value = '';
+            checkSession();
+            showToast('Đã đăng xuất khỏi hệ thống.', 'info');
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('admin-password');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye';
+            }
+        }
+
+        // --- THEME SWITCHER ---
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-moon text-sm';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun text-sm text-amber-400';
+            }
+        }
+
+        // --- RENDER APP & INTERACTION ---
+        function renderApp() {
+            renderFolderTree();
+            renderBreadcrumb();
+            renderCurrentDirectoryContent();
+            updateStorageStatus();
+        }
+
+        function updateStorageStatus() {
+            const totalFolders = db.folders.length;
+            const totalFiles = db.files.length;
+            document.getElementById('storage-status').innerText = `${totalFolders} thư mục • ${totalFiles} tệp tin`;
+        }
+
+        // --- SIDEBAR FOLDER TREE ---
+        function renderFolderTree() {
+            const container = document.getElementById('folder-tree');
+            container.innerHTML = '';
+
+            // Root option
+            const rootActive = currentFolderId === null ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50';
+            const rootEl = document.createElement('div');
+            rootEl.className = `flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-all ${rootActive}`;
+            rootEl.innerHTML = `
+                <div class="flex items-center gap-2 flex-1 truncate" onclick="navigateToFolder(null)">
+                    <i class="fa-solid fa-house-chimney"></i>
+                    <span>Tất cả Thư mục gốc</span>
+                </div>
+            `;
+            container.appendChild(rootEl);
+
+            // Recursive folder renderer
+            function renderSubTree(parentId, level = 0) {
+                const subs = db.folders.filter(f => f.parentId === parentId);
+                subs.forEach(folder => {
+                    const isActive = currentFolderId === folder.id;
+                    const activeClass = isActive ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50';
+                    
+                    const item = document.createElement('div');
+                    item.className = `flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer text-xs transition-all ${activeClass}`;
+                    item.style.paddingLeft = `${(level + 1) * 12 + 12}px`;
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2 truncate flex-1" onclick="navigateToFolder('${folder.id}')">
+                            <i class="fa-solid fa-folder text-amber-500"></i>
+                            <span class="truncate">${folder.name}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="event.stopPropagation(); openEditFolderModal('${folder.id}')" class="text-slate-400 hover:text-indigo-600 p-1" title="Đổi tên thư mục">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteFolder('${folder.id}')" class="text-slate-400 hover:text-rose-500 p-1" title="Xóa thư mục">
+                                <i class="fa-solid fa-trash-can text-[10px]"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(item);
+                    renderSubTree(folder.id, level + 1);
+                });
+            }
+
+            renderSubTree(null);
+        }
+
+        // --- BREADCRUMB ---
+        function renderBreadcrumb() {
+            const container = document.getElementById('breadcrumb-container');
+            container.innerHTML = '';
+
+            let crumbs = [];
+            let tempId = currentFolderId;
+            while (tempId !== null) {
+                const folder = db.folders.find(f => f.id === tempId);
+                if (folder) {
+                    crumbs.unshift(folder);
+                    tempId = folder.parentId;
+                } else {
+                    break;
+                }
+            }
+
+            // Root crumb
+            const rootSpan = document.createElement('button');
+            rootSpan.className = `text-xs font-medium flex items-center gap-1.5 py-1 px-2.5 rounded-lg transition-colors ${currentFolderId === null ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`;
+            rootSpan.innerHTML = `<i class="fa-solid fa-house"></i> <span>Thư mục gốc</span>`;
+            rootSpan.onclick = () => navigateToFolder(null);
+            container.appendChild(rootSpan);
+
+            crumbs.forEach(c => {
+                const sep = document.createElement('span');
+                sep.className = 'text-slate-300 dark:text-slate-600 text-xs';
+                sep.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+                container.appendChild(sep);
+
+                const cSpan = document.createElement('button');
+                cSpan.className = `text-xs font-medium py-1 px-2.5 rounded-lg truncate max-w-[150px] transition-colors ${c.id === currentFolderId ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'}`;
+                cSpan.innerText = c.name;
+                cSpan.onclick = () => navigateToFolder(c.id);
+                container.appendChild(cSpan);
+            });
+        }
+
+        // --- NAVIGATION & SEARCH ---
+        function navigateToFolder(folderId) {
+            currentFolderId = folderId;
+            document.getElementById('search-input').value = '';
+            searchQuery = '';
+            renderApp();
+        }
+
+        function handleSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            renderCurrentDirectoryContent();
+        }
+
+        // --- RENDER FOLDERS & FILES IN VIEW ---
+        function renderCurrentDirectoryContent() {
+            const foldersGrid = document.getElementById('current-folders-grid');
+            const filesContainer = document.getElementById('current-files-container');
+            
+            foldersGrid.innerHTML = '';
+            filesContainer.innerHTML = '';
+
+            let subFolders = [];
+            let currentFiles = [];
+
+            if (searchQuery !== '') {
+                subFolders = db.folders.filter(f => f.name.toLowerCase().includes(searchQuery));
+                currentFiles = db.files.filter(fi => fi.name.toLowerCase().includes(searchQuery));
+            } else {
+                subFolders = db.folders.filter(f => f.parentId === currentFolderId);
+                currentFiles = db.files.filter(fi => fi.folderId === currentFolderId);
+            }
+
+            // Render Subfolders
+            if (subFolders.length === 0) {
+                foldersGrid.innerHTML = `<div class="col-span-full text-xs text-slate-400 italic py-2">Không có thư mục con nào.</div>`;
+            } else {
+                subFolders.forEach(folder => {
+                    const countFiles = db.files.filter(f => f.folderId === folder.id).length;
+                    const countSubs = db.folders.filter(f => f.parentId === folder.id).length;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'group bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between relative';
+                    card.onclick = () => navigateToFolder(folder.id);
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between">
+                            <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-500 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-folder-closed group-hover:fa-folder-open transition-all"></i>
+                            </div>
+                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onclick="event.stopPropagation(); openEditFolderModal('${folder.id}')" class="text-slate-400 hover:text-indigo-600 p-1" title="Đổi tên">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="event.stopPropagation(); deleteFolder('${folder.id}')" class="text-slate-400 hover:text-rose-500 p-1" title="Xóa thư mục">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h4 class="font-semibold text-sm truncate text-slate-700 dark:text-slate-200">${folder.name}</h4>
+                            <p class="text-[11px] text-slate-400 mt-0.5">${countSubs} thư mục, ${countFiles} tệp</p>
+                        </div>
+                    `;
+                    foldersGrid.appendChild(card);
+                });
+            }
+
+            // Render Files
+            if (currentFiles.length === 0) {
+                filesContainer.innerHTML = `
+                    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center">
+                        <i class="fa-solid fa-folder-open text-3xl text-slate-300 dark:text-slate-600 mb-2"></i>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Thư mục này hiện chưa có tài liệu nào.</p>
+                        <button onclick="openUploadModal()" class="mt-3 px-3.5 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-semibold rounded-xl hover:bg-indigo-100 transition-colors">
+                            + Tải tài liệu ngay
+                        </button>
+                    </div>
+                `;
+            } else {
+                if (viewMode === 'grid') {
+                    const gridDiv = document.createElement('div');
+                    gridDiv.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
+                    
+                    currentFiles.forEach(file => {
+                        const fileCard = document.createElement('div');
+                        fileCard.className = 'group bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 hover:border-indigo-500 dark:hover:border-indigo-500 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between relative';
+                        fileCard.onclick = () => openPreviewModal(file.id);
+                        
+                        let iconColor = 'text-indigo-500 bg-indigo-50 dark:bg-indigo-900/30';
+                        let iconClass = 'fa-solid fa-file';
+                        if(file.type === 'pdf') { iconColor = 'text-rose-500 bg-rose-50 dark:bg-rose-900/30'; iconClass = 'fa-solid fa-file-pdf'; }
+                        else if(file.type === 'img') { iconColor = 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'; iconClass = 'fa-solid fa-file-image'; }
+                        else if(file.type === 'txt') { iconColor = 'text-amber-500 bg-amber-50 dark:bg-amber-900/30'; iconClass = 'fa-solid fa-file-lines'; }
+
+                        fileCard.innerHTML = `
+                            <div class="flex items-start justify-between">
+                                <div class="w-10 h-10 rounded-xl ${iconColor} flex items-center justify-center text-lg">
+                                    <i class="${iconClass}"></i>
+                                </div>
+                                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="event.stopPropagation(); downloadFile('${file.id}')" class="text-slate-400 hover:text-indigo-600 p-1" title="Tải về">
+                                        <i class="fa-solid fa-download text-xs"></i>
+                                    </button>
+                                    <button onclick="event.stopPropagation(); deleteFile('${file.id}')" class="text-slate-400 hover:text-rose-500 p-1" title="Xóa tệp">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h4 class="font-semibold text-sm truncate text-slate-700 dark:text-slate-200" title="${file.name}">${file.name}</h4>
+                                <div class="flex items-center justify-between mt-1 text-[11px] text-slate-400">
+                                    <span>${file.size}</span>
+                                    <span>${file.date}</span>
+                                </div>
+                            </div>
+                        `;
+                        gridDiv.appendChild(fileCard);
+                    });
+                    filesContainer.appendChild(gridDiv);
+                } else {
+                    const listDiv = document.createElement('div');
+                    listDiv.className = 'bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm';
+                    
+                    let htmlList = `<table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-400 uppercase tracking-wider text-[10px]">
+                                <th class="p-3.5 font-semibold">Tên tệp tin</th>
+                                <th class="p-3.5 font-semibold">Kích thước</th>
+                                <th class="p-3.5 font-semibold">Ngày tải lên</th>
+                                <th class="p-3.5 font-semibold text-right">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-700">`;
+
+                    currentFiles.forEach(file => {
+                        let iconClass = 'fa-solid fa-file text-indigo-500';
+                        if(file.type === 'pdf') iconClass = 'fa-solid fa-file-pdf text-rose-500';
+                        else if(file.type === 'img') iconClass = 'fa-solid fa-file-image text-emerald-500';
+                        else if(file.type === 'txt') iconClass = 'fa-solid fa-file-lines text-amber-500';
+
+                        htmlList += `
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors" onclick="openPreviewModal('${file.id}')">
+                                <td class="p-3.5 font-medium flex items-center gap-2.5 truncate max-w-xs">
+                                    <i class="${iconClass} text-base"></i>
+                                    <span class="truncate">${file.name}</span>
+                                </td>
+                                <td class="p-3.5 text-slate-400">${file.size}</td>
+                                <td class="p-3.5 text-slate-400">${file.date}</td>
+                                <td class="p-3.5 text-right space-x-1" onclick="event.stopPropagation()">
+                                    <button onclick="downloadFile('${file.id}')" class="px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 transition-colors" title="Tải về">
+                                        <i class="fa-solid fa-download"></i>
+                                    </button>
+                                    <button onclick="deleteFile('${file.id}')" class="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-900/30 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors" title="Xóa">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    htmlList += `</tbody></table>`;
+                    listDiv.innerHTML = htmlList;
+                    filesContainer.appendChild(listDiv);
+                }
+            }
+        }
+
+        function switchViewMode(mode) {
+            viewMode = mode;
+            if (mode === 'grid') {
+                document.getElementById('btn-grid-view').className = 'p-1.5 rounded text-xs text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 shadow-sm transition-all';
+                document.getElementById('btn-list-view').className = 'p-1.5 rounded text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all';
+            } else {
+                document.getElementById('btn-list-view').className = 'p-1.5 rounded text-xs text-indigo-600 dark:text-indigo-400 bg-white dark:bg-slate-800 shadow-sm transition-all';
+                document.getElementById('btn-grid-view').className = 'p-1.5 rounded text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-all';
+            }
+            renderCurrentDirectoryContent();
+        }
+
+        // --- FOLDER ACTIONS ---
+        function openCreateFolderModal() {
+            document.getElementById('edit-folder-id').value = '';
+            document.getElementById('new-folder-name').value = '';
+            document.getElementById('folder-modal-title').innerHTML = `<i class="fa-solid fa-folder-plus text-indigo-600"></i> Tạo thư mục mới`;
+            document.getElementById('folder-submit-btn').innerText = 'Tạo thư mục';
+            document.getElementById('folder-modal').classList.remove('hidden');
+        }
+
+        function openEditFolderModal(folderId) {
+            const folder = db.folders.find(f => f.id === folderId);
+            if (!folder) return;
+
+            document.getElementById('edit-folder-id').value = folder.id;
+            document.getElementById('new-folder-name').value = folder.name;
+            document.getElementById('folder-modal-title').innerHTML = `<i class="fa-solid fa-pen text-indigo-600"></i> Sửa tên thư mục`;
+            document.getElementById('folder-submit-btn').innerText = 'Cập nhật';
+            document.getElementById('folder-modal').classList.remove('hidden');
+        }
+
+        function handleSaveFolder(event) {
+            event.preventDefault();
+            const editId = document.getElementById('edit-folder-id').value;
+            const name = document.getElementById('new-folder-name').value.trim();
+            if (!name) return;
+
+            if (editId) {
+                // Update existing folder
+                const folder = db.folders.find(f => f.id === editId);
+                if (folder) {
+                    folder.name = name;
+                    showToast(`Đã cập nhật tên thư mục thành "${name}"!`, 'success');
+                }
+            } else {
+                // Create new folder
+                const newFolder = {
+                    id: 'f_' + Date.now(),
+                    name: name,
+                    parentId: currentFolderId
+                };
+                db.folders.push(newFolder);
+                showToast(`Đã tạo thư mục "${name}" thành công!`, 'success');
+            }
+
+            saveToLocalStorage();
+            closeModal('folder-modal');
+            renderApp();
+        }
+
+        function deleteFolder(folderId) {
+            const hasSub = db.folders.some(f => f.parentId === folderId);
+            const hasFiles = db.files.some(fi => fi.folderId === folderId);
+            
+            if (hasSub || hasFiles) {
+                if (!confirm('Thư mục này đang chứa thư mục con hoặc tài liệu. Bạn có chắc chắn muốn xóa tất cả bên trong không?')) {
+                    return;
+                }
+            }
+
+            function removeRecursive(id) {
+                const subs = db.folders.filter(f => f.parentId === id);
+                subs.forEach(s => removeRecursive(s.id));
+                db.folders = db.folders.filter(f => f.id !== id);
+                db.files = db.files.filter(fi => fi.folderId !== id);
+            }
+
+            removeRecursive(folderId);
+            if (currentFolderId === folderId) {
+                currentFolderId = null;
+            }
+            saveToLocalStorage();
+            renderApp();
+            showToast('Đã xóa thư mục thành công!', 'info');
+        }
+
+        // --- FILE ACTIONS & UPLOAD ---
+        function openUploadModal() {
+            selectedFileForUpload = null;
+            document.getElementById('file-chosen-label').innerText = 'Nhấn để chọn tệp hoặc kéo thả vào đây';
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
+
+        function updateFileLabel(input) {
+            if (input.files && input.files[0]) {
+                selectedFileForUpload = input.files[0];
+                document.getElementById('file-chosen-label').innerText = `Đã chọn: ${selectedFileForUpload.name}`;
+            }
+        }
+
+        function loadSampleFile(type) {
+            let sample = {};
+            const today = new Date().toLocaleDateString('vi-VN');
+            if (type === 'pdf') {
+                sample = {
+                    id: 'doc_' + Date.now(),
+                    name: 'ChungTuThue_2026.pdf',
+                    folderId: currentFolderId,
+                    size: '1.8 MB',
+                    type: 'pdf',
+                    date: today,
+                    content: 'data:application/pdf;base64,JVBERi0xLjcK...'
+                };
+            } else if (type === 'img') {
+                sample = {
+                    id: 'doc_' + Date.now(),
+                    name: 'BangDiemDaiHoc.png',
+                    folderId: currentFolderId,
+                    size: '3.1 MB',
+                    type: 'img',
+                    date: today,
+                    content: 'https://placehold.co/800x600/10b981/ffffff?text=Bảng+Điểm+Đại+Học+(Mẫu)'
+                };
+            } else if (type === 'txt') {
+                sample = {
+                    id: 'doc_' + Date.now(),
+                    name: 'GhiChuQuanTrọng.txt',
+                    folderId: currentFolderId,
+                    size: '12 KB',
+                    type: 'txt',
+                    date: today,
+                    content: 'DANH SÁCH CÔNG VIỆC CÁ NHÂN:\n1. Nộp hồ sơ bảo hiểm xã hội.\n2. Gia hạn hợp đồng thuê nhà vào cuối tháng.\n3. Kiểm tra lại mật khẩu các ví điện tử.\n4. Sao lưu dữ liệu tài liệu cá nhân vào ổ cứng.'
+                };
+            }
+
+            db.files.push(sample);
+            saveToLocalStorage();
+            closeModal('upload-modal');
+            renderApp();
+            showToast(`Đã tải lên tệp mẫu "${sample.name}" thành công!`, 'success');
+        }
+
+        function handleUploadFile(event) {
+            event.preventDefault();
+            if (!selectedFileForUpload) {
+                showToast('Vui lòng chọn một tệp hợp lệ hoặc dùng tệp mẫu!', 'error');
+                return;
+            }
+
+            const fileName = selectedFileForUpload.name;
+            const fileExt = fileName.split('.').pop().toLowerCase();
+            let type = 'txt';
+            if (fileExt === 'pdf') type = 'pdf';
+            else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(fileExt)) type = 'img';
+            else if (['doc', 'docx', 'xls', 'xlsx'].includes(fileExt)) type = 'doc';
+
+            const sizeKB = (selectedFileForUpload.size / 1024).toFixed(1);
+            const sizeStr = sizeKB > 1024 ? (sizeKB / 1024).toFixed(1) + ' MB' : sizeKB + ' KB';
+            const today = new Date().toLocaleDateString('vi-VN');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const newFile = {
+                    id: 'doc_' + Date.now(),
+                    name: fileName,
+                    folderId: currentFolderId,
+                    size: sizeStr,
+                    type: type,
+                    date: today,
+                    content: e.target.result
+                };
+
+                db.files.push(newFile);
+                saveToLocalStorage();
+                closeModal('upload-modal');
+                renderApp();
+                showToast(`Đã tải lên "${fileName}" thành công!`, 'success');
+            };
+
+            reader.readAsDataURL(selectedFileForUpload);
+        }
+
+        function deleteFile(fileId) {
+            db.files = db.files.filter(f => f.id !== fileId);
+            saveToLocalStorage();
+            renderApp();
+            showToast('Đã xóa tài liệu thành công!', 'info');
+        }
+
+        function downloadFile(fileId) {
+            const file = db.files.find(f => f.id === fileId);
+            if (!file) return;
+
+            let blob;
+            if (file.content.startsWith('data:')) {
+                const parts = file.content.split(',');
+                const mimeMatch = parts[0].match(/:(.*?);/);
+                const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+                const bstr = window.atob(parts[1]);
+                let n = bstr.length;
+                const u8arr = new Uint8Array(n);
+                while (n--) {
+                    u8arr[n] = bstr.charCodeAt(n);
+                }
+                blob = new Blob([u8arr], { type: mime });
+            } else {
+                blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
+            }
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = file.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast(`Đang tải xuống "${file.name}"...`, 'success');
+        }
+
+        // --- PREVIEW MODAL ---
+        function openPreviewModal(fileId) {
+            const file = db.files.find(f => f.id === fileId);
+            if (!file) return;
+
+            document.getElementById('preview-file-title').innerText = file.name;
+            document.getElementById('preview-file-meta').innerText = `Kích thước: ${file.size} • Tải lên: ${file.date}`;
+            document.getElementById('preview-download-btn').onclick = () => downloadFile(file.id);
+
+            const iconContainer = document.getElementById('preview-file-icon');
+            if(file.type === 'pdf') {
+                iconContainer.className = 'w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center';
+                iconContainer.innerHTML = '<i class="fa-solid fa-file-pdf"></i>';
+            } else if(file.type === 'img') {
+                iconContainer.className = 'w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center';
+                iconContainer.innerHTML = '<i class="fa-solid fa-file-image"></i>';
+            } else {
+                iconContainer.className = 'w-10 h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center';
+                iconContainer.innerHTML = '<i class="fa-solid fa-file-lines"></i>';
+            }
+
+            const previewArea = document.getElementById('preview-content-area');
+            previewArea.innerHTML = '';
+
+            if (file.type === 'img') {
+                const imgSrc = file.content.startsWith('data:') || file.content.startsWith('http') ? file.content : 'https://placehold.co/800x600/4f46e5/ffffff?text=Xem+Trước+Ảnh';
+                previewArea.innerHTML = `<img src="${imgSrc}" alt="${file.name}" class="max-h-full max-w-full rounded-xl shadow-lg object-contain">`;
+            } else if (file.type === 'pdf') {
+                if (file.content.startsWith('data:application/pdf')) {
+                    previewArea.innerHTML = `<iframe src="${file.content}" class="w-full h-full rounded-xl border border-slate-200 dark:border-slate-700"></iframe>`;
+                } else {
+                    previewArea.innerHTML = `
+                        <div class="text-center p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 max-w-lg w-full">
+                            <div class="w-16 h-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4 text-3xl">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <h4 class="font-bold text-base mb-1">${file.name}</h4>
+                            <p class="text-xs text-slate-400 mb-6">Tài liệu định dạng PDF bảo mật</p>
+                            <button onclick="downloadFile('${file.id}')" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md transition-all inline-flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> Tải về máy để xem toàn văn
+                            </button>
+                        </div>
+                    `;
+                }
+            } else {
+                let displayContent = file.content;
+                if (displayContent.startsWith('data:')) {
+                    try {
+                        const base64Part = displayContent.split(',')[1];
+                        displayContent = decodeURIComponent(escape(window.atob(base64Part)));
+                    } catch(err) {
+                        displayContent = "[Tệp nhị phân đã được lưu trữ thành công. Bấm 'Tải về' để mở trên thiết bị.]";
+                    }
+                }
+                previewArea.innerHTML = `
+                    <div class="w-full h-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 overflow-auto text-left font-mono text-xs whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-300">
+                        ${displayContent}
+                    </div>
+                `;
+            }
+
+            document.getElementById('preview-modal').classList.remove('hidden');
+        }
+
+        // --- UTILITY MODALS & TOASTS ---
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-emerald-600 text-white';
+            let icon = 'fa-circle-check';
+            if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white';
+                icon = 'fa-triangle-exclamation';
+            } else if (type === 'info') {
+                bgClass = 'bg-slate-800 text-white dark:bg-slate-700';
+                icon = 'fa-circle-info';
+            }
+
+            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2.5 transform translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
